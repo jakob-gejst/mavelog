@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mavelog</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F5F2EC;
+    --surface: #FDFAF5;
+    --ink: #1A1714;
+    --ink2: #6B6560;
+    --ink3: #A8A39E;
+    --accent: #C4440A;
+    --accent-light: #F5E6DF;
+    --green: #2D6A4F;
+    --green-light: #D8EFE5;
+    --amber: #8B5E0A;
+    --amber-light: #FDF0D5;
+    --red: #9B1C1C;
+    --red-light: #FDE8E8;
+    --border: #E2DDD6;
+    --radius: 3px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    min-height: 100vh;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--ink);
+    color: #F5F2EC;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    letter-spacing: -0.5px;
+    color: #F5F2EC;
+    line-height: 1.1;
+  }
+  .logo em { color: var(--accent); font-style: italic; }
+
+  .nav { display: flex; flex-direction: column; gap: 4px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: #A8A39E;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.03em;
+    transition: all 0.15s;
+    border: none; background: none; text-align: left; width: 100%;
+  }
+  .nav-item:hover { color: #F5F2EC; background: rgba(255,255,255,0.07); }
+  .nav-item.active { color: #F5F2EC; background: rgba(255,255,255,0.12); }
+  .nav-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+  .sidebar-bottom {
+    margin-top: auto;
+    font-size: 11px;
+    color: #6B6560;
+    line-height: 1.6;
+  }
+
+  /* MAIN */
+  .main {
+    padding: 40px 48px;
+    max-width: 760px;
+  }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* PAGE HEADER */
+  .page-header {
+    margin-bottom: 36px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 32px;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 6px;
+  }
+  .page-subtitle { color: var(--ink2); font-size: 12px; }
+
+  /* CHECK-IN FLOW */
+  .checkin-type {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .type-btn {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+  .type-btn:hover { border-color: var(--ink3); }
+  .type-btn.selected { border-color: var(--ink); background: var(--ink); color: #F5F2EC; }
+  .type-btn .type-time { font-size: 18px; margin-bottom: 4px; }
+  .type-btn .type-label { font-size: 11px; color: var(--ink2); }
+  .type-btn.selected .type-label { color: var(--ink3); }
+
+  .step { display: none; }
+  .step.active { display: block; }
+
+  .step-indicator {
+    font-size: 11px;
+    color: var(--ink3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .question {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    line-height: 1.2;
+  }
+  .question-sub { font-size: 12px; color: var(--ink2); margin-bottom: 24px; }
+
+  /* SCORE SELECTOR */
+  .score-grid {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .score-btn {
+    width: 52px; height: 52px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Mono', monospace;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .score-btn:hover { border-color: var(--ink3); }
+  .score-btn.selected { border-color: var(--ink); background: var(--ink); color: #F5F2EC; }
+  .score-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--ink3);
+    max-width: 280px;
+    margin-bottom: 28px;
+  }
+
+  /* SYMPTOM CHIPS */
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; }
+  .chip {
+    padding: 7px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .chip:hover { border-color: var(--ink3); }
+  .chip.selected { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
+  .chip.none-chip.selected { border-color: var(--green); background: var(--green-light); color: var(--green); }
+
+  /* INPUTS */
+  .field { margin-bottom: 20px; }
+  .field label { display: block; font-size: 11px; color: var(--ink2); margin-bottom: 6px; letter-spacing: 0.04em; }
+  .field input, .field textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s;
+    resize: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--ink3); }
+
+  /* BUTTONS */
+  .btn-row { display: flex; gap: 12px; margin-top: 28px; }
+  .btn {
+    padding: 11px 22px;
+    border-radius: var(--radius);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+    letter-spacing: 0.02em;
+  }
+  .btn-primary { background: var(--ink); color: #F5F2EC; }
+  .btn-primary:hover { background: #2D2A27; }
+  .btn-primary:disabled { background: var(--border); color: var(--ink3); cursor: default; }
+  .btn-secondary { background: var(--surface); color: var(--ink2); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: var(--ink3); color: var(--ink); }
+
+  /* WEBHOOK CONFIG */
+  .config-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+  .config-box .config-title { font-size: 11px; letter-spacing: 0.06em; color: var(--ink2); margin-bottom: 12px; text-transform: uppercase; }
+  .webhook-row { display: flex; gap: 10px; align-items: center; }
+  .webhook-row input { flex: 1; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+  .status-dot.ok { background: var(--green); }
+  .status-dot.err { background: var(--red); }
+
+  /* CONFIRMATION */
+  .confirm-box {
+    background: var(--green-light);
+    border: 1px solid #A8D5C2;
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+  }
+  .confirm-check { font-size: 32px; margin-bottom: 8px; }
+  .confirm-title { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 4px; color: var(--green); }
+  .confirm-sub { font-size: 12px; color: var(--ink2); }
+  .confirm-summary {
+    margin-top: 16px;
+    background: white;
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: left;
+    font-size: 12px;
+    color: var(--ink2);
+    line-height: 1.8;
+  }
+
+  /* HISTORIK */
+  .history-filters {
+    display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 5px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--ink2);
+    transition: all 0.15s;
+  }
+  .filter-btn:hover, .filter-btn.active { border-color: var(--ink); color: var(--ink); background: var(--ink); color: #F5F2EC; }
+
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 100px 60px 1fr auto;
+    gap: 16px;
+    align-items: start;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+  .history-card:hover { border-color: var(--ink3); }
+  .history-date { font-size: 12px; color: var(--ink2); }
+  .history-tid { font-size: 11px; color: var(--ink3); }
+  .history-score-big {
+    width: 40px; height: 40px;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+  }
+  .score-bg-1 { background: var(--red-light); color: var(--red); }
+  .score-bg-2 { background: var(--red-light); color: var(--red); }
+  .score-bg-3 { background: var(--amber-light); color: var(--amber); }
+  .score-bg-4 { background: var(--green-light); color: var(--green); }
+  .score-bg-5 { background: var(--green-light); color: var(--green); }
+
+  .history-details { }
+  .history-symptomer { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .h-chip {
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    background: var(--accent-light);
+    color: var(--accent);
+  }
+  .history-mad { font-size: 11px; color: var(--ink3); }
+  .history-extra { font-size: 11px; color: var(--ink3); }
+
+  /* OPSUMMERING */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+  }
+  .stat-label { font-size: 10px; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-value { font-family: 'DM Serif Display', serif; font-size: 28px; letter-spacing: -1px; }
+  .stat-sub { font-size: 10px; color: var(--ink3); margin-top: 2px; }
+
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    margin-bottom: 14px;
+    margin-top: 28px;
+  }
+
+  .pattern-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .pattern-item {
+    background: var(--surface);
+    border-left: 3px solid var(--accent);
+    padding: 10px 14px;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--ink2);
+  }
+
+  .ai-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-top: 20px;
+  }
+  .ai-box .ai-label { font-size: 10px; letter-spacing: 0.08em; color: var(--ink3); text-transform: uppercase; margin-bottom: 12px; }
+  .ai-response { font-size: 13px; color: var(--ink2); line-height: 1.8; white-space: pre-wrap; }
+  .ai-loading { color: var(--ink3); font-style: italic; }
+
+  /* OPSÆT */
+  .setup-steps { display: flex; flex-direction: column; gap: 16px; }
+  .setup-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 32px 1fr;
+    gap: 16px;
+  }
+  .step-num {
+    width: 32px; height: 32px;
+    background: var(--ink);
+    color: #F5F2EC;
+    border-radius: var(--radius);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-family: 'DM Serif Display', serif;
+    flex-shrink: 0;
+  }
+  .setup-step h3 { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .setup-step p { font-size: 12px; color: var(--ink2); line-height: 1.7; }
+  .setup-step code {
+    display: block;
+    background: var(--ink);
+    color: #A8D5C2;
+    padding: 12px;
+    border-radius: var(--radius);
+    font-size: 11px;
+    margin-top: 10px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ink3);
+  }
+  .empty-state .empty-icon { font-size: 36px; margin-bottom: 12px; }
+  .empty-state p { font-size: 13px; }
+
+  /* MINI CHART */
+  .score-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 60px;
+    margin-bottom: 28px;
+  }
+  .score-bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; flex: 1; }
+  .score-bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.3s;
+    min-height: 2px;
+  }
+  .score-bar-label { font-size: 8px; color: var(--ink3); }
+
+  .no-data-banner {
+    background: var(--amber-light);
+    border: 1px solid #E6C87A;
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    font-size: 12px;
+    color: var(--amber);
+    margin-bottom: 24px;
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="logo">Mave<em>log</em></div>
+    <div class="nav">
+      <button class="nav-item active" onclick="showPage('checkin')">
+        <span class="nav-dot"></span> Check-in
+      </button>
+      <button class="nav-item" onclick="showPage('historik')">
+        <span class="nav-dot"></span> Historik
+      </button>
+      <button class="nav-item" onclick="showPage('opsummering')">
+        <span class="nav-dot"></span> Opsummering
+      </button>
+      <button class="nav-item" onclick="showPage('opsaetning')">
+        <span class="nav-dot"></span> Opsætning
+      </button>
+    </div>
+    <div class="sidebar-bottom">
+      Jakob Blæsberg Lauritsen<br>
+      <span style="color:#4A4643">Mavelog v1.0</span>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- CHECK-IN PAGE -->
+    <div id="page-checkin" class="page active">
+      <div class="page-header">
+        <div class="page-title">Check-in</div>
+        <div class="page-subtitle" id="checkin-subtitle">Vælg tidspunkt for dagens check-in</div>
+      </div>
+
+      <div id="type-select">
+        <div class="checkin-type">
+          <div class="type-btn" onclick="selectType('morgen')">
+            <div class="type-time">🌅</div>
+            <div style="font-size:13px;margin-bottom:2px;">Morgen</div>
+            <div class="type-label">07–09</div>
+          </div>
+          <div class="type-btn" onclick="selectType('eftermiddag')">
+            <div class="type-time">☀️</div>
+            <div style="font-size:13px;margin-bottom:2px;">Eftermiddag</div>
+            <div class="type-label">12–14</div>
+          </div>
+          <div class="type-btn" onclick="selectType('aften')">
+            <div class="type-time">🌙</div>
+            <div style="font-size:13px;margin-bottom:2px;">Aften</div>
+            <div class="type-label">19–22</div>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="startCheckin()" id="start-btn" disabled>Start check-in →</button>
+      </div>
+
+      <div id="flow" style="display:none;"></div>
+    </div>
+
+    <!-- HISTORIK PAGE -->
+    <div id="page-historik" class="page">
+      <div class="page-header">
+        <div class="page-title">Historik</div>
+        <div class="page-subtitle">Alle loggede check-ins</div>
+      </div>
+      <div id="historik-content"></div>
+    </div>
+
+    <!-- OPSUMMERING PAGE -->
+    <div id="page-opsummering" class="page">
+      <div class="page-header">
+        <div class="page-title">Opsummering</div>
+        <div class="page-subtitle">Mønstre og statistik</div>
+      </div>
+      <div id="opsummering-content"></div>
+    </div>
+
+    <!-- OPSÆTNING PAGE -->
+    <div id="page-opsaetning" class="page">
+      <div class="page-header">
+        <div class="page-title">Opsætning</div>
+        <div class="page-subtitle">Google Sheets-integration</div>
+      </div>
+
+      <div class="config-box" style="margin-bottom:24px;">
+        <div class="config-title">Webhook URL</div>
+        <div class="webhook-row">
+          <input type="text" id="webhook-url" placeholder="https://script.google.com/macros/s/..." oninput="saveWebhook()">
+          <div class="status-dot" id="webhook-status"></div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--ink3);" id="webhook-hint">Indsæt din Apps Script URL herover</div>
+      </div>
+
+      <div class="setup-steps">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div>
+            <h3>Åbn dit Google Sheets-regneark</h3>
+            <p>Gå til dit eksisterende regneark eller opret et nyt. Klik på <strong>Udvidelser → Apps Script</strong>.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div>
+            <h3>Indsæt dette script</h3>
+            <p>Slet alt i editoren og indsæt koden nedenfor. Klik Gem.</p>
+            <code>function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const sheet = SpreadsheetApp.getActiveSpreadsheet()
+    .getSheetByName('Mavelog') || 
+    SpreadsheetApp.getActiveSpreadsheet()
+    .insertSheet('Mavelog');
+
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(['Dato','Tidspunkt','Kl.','Score',
+      'Symptomer','Mad','Kaffe','Søvn score',
+      'Søvn timer','Stress','Motion','Alkohol','Noter']);
+  }
+
+  sheet.appendRow([
+    data.dato, data.tidspunkt, data.klokkeslaet,
+    data.mavescore, (data.symptomer||[]).join(', '),
+    data.mad||'', data.kaffe||'',
+    data.sovn_score||'', data.sovn_timer||'',
+    data.stress||'', data.motion||'',
+    data.alkohol||'', data.noter||''
+  ]);
+
+  return ContentService
+    .createTextOutput(JSON.stringify({status:'ok'}))
+    .setMimeType(ContentService.MimeType.JSON);
+}</code>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div>
+            <h3>Deploy som webapp</h3>
+            <p>Klik <strong>Deploy → Ny deployment</strong>. Vælg type: <strong>Webapp</strong>. Sæt "Kør som" til <strong>Mig</strong> og "Adgang" til <strong>Alle</strong>. Klik Deploy og kopiér URL'en.</p>
+          </div>
+        </div>
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div>
+            <h3>Indsæt URL'en herover</h3>
+            <p>Kopiér din webapp-URL og indsæt den i feltet øverst. Appen sender herefter automatisk alle check-ins til dit regneark.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────────
+const STORAGE_KEY = 'mavelog_entries';
+let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let webhookUrl = localStorage.getItem('mavelog_webhook') || '';
+let currentType = null;
+let currentEntry = {};
+
+// Init
+if (webhookUrl) {
+  document.getElementById('webhook-url').value = webhookUrl;
+  document.getElementById('webhook-status').classList.add('ok');
+  document.getElementById('webhook-hint').textContent = 'Webhook konfigureret ✓';
+}
+
+// ─── NAV ─────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (name === 'historik') renderHistorik();
+  if (name === 'opsummering') renderOpsummering();
+}
+
+// ─── CHECK-IN FLOW ────────────────────────────────────────────
+function selectType(type) {
+  currentType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  document.getElementById('start-btn').disabled = false;
+  const subtitles = { morgen: 'Morgen-check-in · 4 spørgsmål', eftermiddag: 'Eftermiddags-check-in · 5 spørgsmål', aften: 'Aften-check-in · 6 spørgsmål' };
+  document.getElementById('checkin-subtitle').textContent = subtitles[type];
+}
+
+function startCheckin() {
+  document.getElementById('type-select').style.display = 'none';
+  const flow = document.getElementById('flow');
+  flow.style.display = 'block';
+  currentEntry = {
+    dato: new Date().toISOString().slice(0, 10),
+    tidspunkt: currentType,
+    klokkeslaet: new Date().toTimeString().slice(0,5),
+    mavescore: null, symptomer: [], mad: null,
+    kaffe: null, sovn_score: null, sovn_timer: null,
+    stress: null, motion: null, alkohol: null, noter: null
+  };
+  renderStep(0);
+}
+
+const steps = {
+  morgen: ['score','symptomer','sovn','mad_aftensmad'],
+  eftermiddag: ['score','symptomer','mad_dag','kaffe','stress'],
+  aften: ['score','symptomer','mad_aftensmad','motion','alkohol','noter']
+};
+
+const stepDefs = {
+  score: {
+    title: 'Hvordan har din mave det?',
+    sub: 'Skala 1–5 · 1 = meget ubehag, 5 = helt fin',
+    render: renderScore
+  },
+  symptomer: {
+    title: 'Har du nogen symptomer?',
+    sub: 'Vælg alle der passer — eller "ingen"',
+    render: renderSymptomer
+  },
+  sovn: {
+    title: 'Hvordan sov du?',
+    sub: 'Score + antal timer',
+    render: renderSovn
+  },
+  mad_aftensmad: {
+    title: 'Hvad har du spist?',
+    sub: currentType === 'morgen' ? 'Aftensmad i går + evt. snacks' : 'Aftensmad + snacks i dag',
+    render: renderMad
+  },
+  mad_dag: {
+    title: 'Hvad har du spist i dag?',
+    sub: 'Morgenmad og frokost',
+    render: renderMad
+  },
+  kaffe: {
+    title: 'Kaffe og drikke',
+    sub: 'Antal kopper kaffe i dag',
+    render: renderKaffe
+  },
+  stress: {
+    title: 'Stressniveau i dag',
+    sub: '1 = meget stresset, 5 = rolig og afslappet',
+    render: renderStress
+  },
+  motion: {
+    title: 'Motion i dag?',
+    sub: 'Type, varighed og evt. mavesymptomer under/efter',
+    render: renderMotion
+  },
+  alkohol: {
+    title: 'Alkohol i dag?',
+    sub: '',
+    render: renderAlkohol
+  },
+  noter: {
+    title: 'Noget usædvanligt?',
+    sub: 'Stress, ny mad, rejse, dårlig søvn, etc.',
+    render: renderNoter
+  }
+};
+
+let currentStepIdx = 0;
+
+function renderStep(idx) {
+  currentStepIdx = idx;
+  const stepList = steps[currentType];
+  const stepKey = stepList[idx];
+  const def = stepDefs[stepKey];
+  const total = stepList.length;
+  const flow = document.getElementById('flow');
+
+  flow.innerHTML = `
+    <div class="step active">
+      <div class="step-indicator">${idx + 1} / ${total}</div>
+      <div class="question">${def.title}</div>
+      <div class="question-sub">${def.sub || ''}</div>
+      <div id="step-input"></div>
+      <div class="btn-row">
+        ${idx > 0 ? '<button class="btn btn-secondary" onclick="renderStep(' + (idx-1) + ')">← Tilbage</button>' : ''}
+        <button class="btn btn-primary" id="next-btn" onclick="nextStep()" disabled>
+          ${idx < total - 1 ? 'Næste →' : 'Log check-in ✓'}
+        </button>
+      </div>
+    </div>
+  `;
+  def.render();
+}
+
+function enableNext() {
+  document.getElementById('next-btn').disabled = false;
+}
+
+function nextStep() {
+  const stepList = steps[currentType];
+  if (currentStepIdx < stepList.length - 1) {
+    renderStep(currentStepIdx + 1);
+  } else {
+    submitEntry();
+  }
+}
+
+function renderScore() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="score-grid">
+      ${[1,2,3,4,5].map(n => `<button class="score-btn ${currentEntry.mavescore===n?'selected':''}" onclick="setScore(${n})">${n}</button>`).join('')}
+    </div>
+    <div class="score-labels"><span>Meget ubehag</span><span>Helt fin</span></div>
+  `;
+  if (currentEntry.mavescore) enableNext();
+}
+
+function setScore(n) {
+  currentEntry.mavescore = n;
+  renderScore();
+  enableNext();
+}
+
+function renderSymptomer() {
+  const syms = ['Luft','Oppustethed','Smerter','Løs mave','Forstoppelse','Kvalme','Sure opstød','Andet'];
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="chips">
+      <div class="chip none-chip ${currentEntry.symptomer.length===0?'selected':''}" onclick="toggleNone()">Ingen</div>
+      ${syms.map(s => `<div class="chip ${currentEntry.symptomer.includes(s.toLowerCase())?'selected':''}" onclick="toggleSym('${s.toLowerCase()}')">${s}</div>`).join('')}
+    </div>
+  `;
+  enableNext();
+}
+
+function toggleNone() {
+  currentEntry.symptomer = [];
+  renderSymptomer();
+}
+
+function toggleSym(s) {
+  const i = currentEntry.symptomer.indexOf(s);
+  if (i > -1) currentEntry.symptomer.splice(i, 1);
+  else currentEntry.symptomer.push(s);
+  renderSymptomer();
+  enableNext();
+}
+
+function renderSovn() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--ink2);margin-bottom:8px;letter-spacing:.04em;">Søvnkvalitet</div>
+      <div class="score-grid">
+        ${[1,2,3,4,5].map(n => `<button class="score-btn ${currentEntry.sovn_score===n?'selected':''}" onclick="setSovn(${n})">${n}</button>`).join('')}
+      </div>
+      <div class="score-labels"><span>Dårlig</span><span>Fantastisk</span></div>
+    </div>
+    <div class="field">
+      <label>Antal timer</label>
+      <input type="number" min="2" max="12" step="0.5" placeholder="7.5" value="${currentEntry.sovn_timer||''}" oninput="currentEntry.sovn_timer=parseFloat(this.value)||null;checkSovn()">
+    </div>
+  `;
+  checkSovn();
+}
+
+function setSovn(n) {
+  currentEntry.sovn_score = n;
+  renderSovn();
+  checkSovn();
+}
+
+function checkSovn() {
+  if (currentEntry.sovn_score && currentEntry.sovn_timer) enableNext();
+}
+
+function renderMad() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="field">
+      <textarea rows="3" placeholder="fx havregrød med bær, rugbrød med makrel..." oninput="currentEntry.mad=this.value;if(this.value.trim())enableNext()">${currentEntry.mad||''}</textarea>
+    </div>
+  `;
+  if (currentEntry.mad) enableNext();
+}
+
+function renderKaffe() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="score-grid">
+      ${[0,1,2,3,4,5,6].map(n => `<button class="score-btn ${currentEntry.kaffe===n?'selected':''}" style="width:40px;height:40px;font-size:15px;" onclick="setKaffe(${n})">${n}</button>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--ink3);margin-top:6px;">kopper kaffe i dag</div>
+  `;
+  if (currentEntry.kaffe !== null) enableNext();
+}
+
+function setKaffe(n) {
+  currentEntry.kaffe = n;
+  renderKaffe();
+  enableNext();
+}
+
+function renderStress() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="score-grid">
+      ${[1,2,3,4,5].map(n => `<button class="score-btn ${currentEntry.stress===n?'selected':''}" onclick="setStress(${n})">${n}</button>`).join('')}
+    </div>
+    <div class="score-labels"><span>Meget stresset</span><span>Rolig</span></div>
+  `;
+  if (currentEntry.stress) enableNext();
+}
+
+function setStress(n) {
+  currentEntry.stress = n;
+  renderStress();
+  enableNext();
+}
+
+function renderMotion() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="chips" style="margin-bottom:16px;">
+      <div class="chip ${currentEntry.motion==='ingen'?'selected':''}" onclick="setMotionNone()">Ingen motion</div>
+    </div>
+    <div class="field" id="motion-fields" style="${currentEntry.motion==='ingen'?'display:none':''}">
+      <textarea rows="2" placeholder="fx 9 km løb kl. 20:30, mavepres ved max intensitet..." oninput="currentEntry.motion=this.value;if(this.value.trim())enableNext()">${currentEntry.motion&&currentEntry.motion!=='ingen'?currentEntry.motion:''}</textarea>
+    </div>
+  `;
+  if (currentEntry.motion) enableNext();
+}
+
+function setMotionNone() {
+  currentEntry.motion = 'ingen';
+  renderMotion();
+  enableNext();
+}
+
+function renderAlkohol() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="chips">
+      <div class="chip ${currentEntry.alkohol===false?'selected none-chip':''}" onclick="setAlkohol(false)">Nej</div>
+      <div class="chip ${currentEntry.alkohol===true?'selected':''}" onclick="setAlkohol(true)">Ja</div>
+    </div>
+    <div class="field" id="alkohol-detail" style="${currentEntry.alkohol?'':'display:none'}">
+      <input type="text" placeholder="Hvad og ca. hvor meget?" oninput="currentEntry.alkohol_noter=this.value">
+    </div>
+  `;
+  if (currentEntry.alkohol !== null) enableNext();
+}
+
+function setAlkohol(val) {
+  currentEntry.alkohol = val;
+  renderAlkohol();
+  enableNext();
+}
+
+function renderNoter() {
+  const inp = document.getElementById('step-input');
+  inp.innerHTML = `
+    <div class="field">
+      <textarea rows="3" placeholder="Valgfrit — skriv noget hvis der er sket noget usædvanligt..." oninput="currentEntry.noter=this.value">${currentEntry.noter||''}</textarea>
+    </div>
+  `;
+  enableNext();
+}
+
+// ─── SUBMIT ───────────────────────────────────────────────────
+async function submitEntry() {
+  entries.push({...currentEntry});
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+
+  const flow = document.getElementById('flow');
+  const scoreColors = {1:'var(--red)',2:'var(--red)',3:'var(--amber)',4:'var(--green)',5:'var(--green)'};
+  const syms = currentEntry.symptomer.length ? currentEntry.symptomer.join(', ') : 'Ingen';
+
+  flow.innerHTML = `
+    <div class="confirm-box">
+      <div class="confirm-check">✓</div>
+      <div class="confirm-title">Check-in logget</div>
+      <div class="confirm-sub">${currentEntry.dato} · ${currentEntry.tidspunkt} · kl. ${currentEntry.klokkeslaet}</div>
+      <div class="confirm-summary">
+        <strong>Mavescore:</strong> ${currentEntry.mavescore}/5<br>
+        <strong>Symptomer:</strong> ${syms}<br>
+        ${currentEntry.mad ? `<strong>Mad:</strong> ${currentEntry.mad}<br>` : ''}
+        ${currentEntry.kaffe !== null ? `<strong>Kaffe:</strong> ${currentEntry.kaffe} kopper<br>` : ''}
+        ${currentEntry.motion ? `<strong>Motion:</strong> ${currentEntry.motion}<br>` : ''}
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--ink3);" id="webhook-result">
+      ${webhookUrl ? 'Sender til Google Sheets...' : '⚠ Ingen webhook konfigureret — data er kun gemt lokalt i browseren.'}
+    </div>
+    <div class="btn-row" style="margin-top:20px;">
+      <button class="btn btn-primary" onclick="resetCheckin()">Ny check-in</button>
+      <button class="btn btn-secondary" onclick="showHistorik()">Se historik</button>
+    </div>
+  `;
+
+  if (webhookUrl) {
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(currentEntry),
+        mode: 'no-cors'
+      });
+      document.getElementById('webhook-result').textContent = '✓ Sendt til Google Sheets';
+      document.getElementById('webhook-result').style.color = 'var(--green)';
+    } catch(e) {
+      document.getElementById('webhook-result').textContent = '✗ Kunne ikke sende til Sheets — data gemt lokalt.';
+      document.getElementById('webhook-result').style.color = 'var(--red)';
+    }
+  }
+}
+
+function resetCheckin() {
+  currentType = null;
+  currentEntry = {};
+  document.getElementById('type-select').style.display = 'block';
+  document.getElementById('flow').style.display = 'none';
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('start-btn').disabled = true;
+  document.getElementById('checkin-subtitle').textContent = 'Vælg tidspunkt for dagens check-in';
+}
+
+function showHistorik() {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-historik').classList.add('active');
+  document.querySelectorAll('.nav-item')[1].classList.add('active');
+  renderHistorik();
+}
+
+// ─── HISTORIK ─────────────────────────────────────────────────
+function renderHistorik() {
+  const c = document.getElementById('historik-content');
+  if (entries.length === 0) {
+    c.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Ingen check-ins endnu.<br>Start din første check-in for at se historik her.</p></div>`;
+    return;
+  }
+
+  const sorted = [...entries].sort((a,b) => (b.dato+b.tidspunkt).localeCompare(a.dato+a.tidspunkt));
+
+  c.innerHTML = `
+    <div class="history-list">
+      ${sorted.map(e => {
+        const syms = e.symptomer && e.symptomer.length > 0
+          ? e.symptomer.map(s => `<span class="h-chip">${s}</span>`).join('')
+          : '<span style="font-size:11px;color:var(--ink3)">ingen symptomer</span>';
+        const tidEmoji = {morgen:'🌅',eftermiddag:'☀️',aften:'🌙'}[e.tidspunkt]||'';
+        return `
+          <div class="history-card">
+            <div>
+              <div class="history-date">${e.dato}</div>
+              <div class="history-tid">${tidEmoji} ${e.tidspunkt} · ${e.klokkeslaet||''}</div>
+            </div>
+            <div class="history-score-big score-bg-${e.mavescore}">${e.mavescore}</div>
+            <div class="history-details">
+              <div class="history-symptomer">${syms}</div>
+              ${e.mad ? `<div class="history-mad">${e.mad.slice(0,60)}${e.mad.length>60?'…':''}</div>` : ''}
+              ${e.kaffe !== null && e.kaffe !== undefined ? `<div class="history-extra">☕ ${e.kaffe} kopper</div>` : ''}
+              ${e.motion && e.motion !== 'ingen' ? `<div class="history-extra">🏃 ${e.motion.slice(0,50)}</div>` : ''}
+            </div>
+            <div style="font-size:11px;color:var(--ink3);white-space:nowrap;">${e.noter?'💬':''}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// ─── OPSUMMERING ──────────────────────────────────────────────
+function renderOpsummering() {
+  const c = document.getElementById('opsummering-content');
+
+  if (entries.length < 3) {
+    c.innerHTML = `<div class="no-data-banner">Du skal have mindst 3 check-ins for at se mønstre.</div>
+    <div class="empty-state"><div class="empty-icon">📊</div><p>Log et par check-ins mere, så analyserer jeg dine mønstre.</p></div>`;
+    return;
+  }
+
+  const avg = arr => arr.length ? (arr.reduce((a,b)=>a+b,0)/arr.length).toFixed(1) : '—';
+  const scores = entries.map(e=>e.mavescore).filter(Boolean);
+  const morgenScores = entries.filter(e=>e.tidspunkt==='morgen').map(e=>e.mavescore).filter(Boolean);
+  const aftScores = entries.filter(e=>e.tidspunkt==='aften').map(e=>e.mavescore).filter(Boolean);
+  const allSyms = entries.flatMap(e=>e.symptomer||[]);
+  const symCount = {};
+  allSyms.forEach(s => symCount[s] = (symCount[s]||0)+1);
+  const topSyms = Object.entries(symCount).sort((a,b)=>b[1]-a[1]).slice(0,4);
+
+  // Mini chart — last 14 entries
+  const recent = [...entries].sort((a,b)=>(a.dato+a.tidspunkt).localeCompare(b.dato+b.tidspunkt)).slice(-14);
+  const barColors = {1:'#9B1C1C',2:'#C05621',3:'#B7791F',4:'#276749',5:'#276749'};
+
+  c.innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Gns. score</div>
+        <div class="stat-value">${avg(scores)}</div>
+        <div class="stat-sub">af 5 · ${entries.length} check-ins</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Morgen vs aften</div>
+        <div class="stat-value" style="font-size:20px;padding-top:4px;">${avg(morgenScores)} / ${avg(aftScores)}</div>
+        <div class="stat-sub">morgen / aften</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Hyppigste symptom</div>
+        <div class="stat-value" style="font-size:18px;padding-top:4px;">${topSyms[0]?topSyms[0][0]:'ingen'}</div>
+        <div class="stat-sub">${topSyms[0]?topSyms[0][1]+' gange':''}</div>
+      </div>
+    </div>
+
+    <div class="score-chart">
+      ${recent.map(e=>{
+        const h = (e.mavescore/5)*52;
+        return `<div class="score-bar-wrap">
+          <div class="score-bar" style="height:${h}px;background:${barColors[e.mavescore]||'#888'}"></div>
+          <div class="score-bar-label">${e.dato.slice(5)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="section-title">Symptommønstre</div>
+    <div class="pattern-list">
+      ${topSyms.length ? topSyms.map(([sym,count])=>`
+        <div class="pattern-item">${sym.charAt(0).toUpperCase()+sym.slice(1)} · rapporteret ${count} gang${count>1?'e':''}</div>
+      `).join('') : '<div class="pattern-item">Ingen symptomer logget endnu</div>'}
+    </div>
+
+    <div class="section-title">AI-analyse</div>
+    <div class="ai-box">
+      <div class="ai-label">Claude analyserer dine data</div>
+      <div class="ai-response ai-loading" id="ai-text">Analyserer ${entries.length} check-ins...</div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:12px;" onclick="runAIAnalysis()">Opdater analyse →</button>
+  `;
+
+  runAIAnalysis();
+}
+
+async function runAIAnalysis() {
+  const el = document.getElementById('ai-text');
+  if (!el) return;
+  el.textContent = 'Analyserer...';
+  el.className = 'ai-response ai-loading';
+
+  const summary = entries.map(e =>
+    `${e.dato} ${e.tidspunkt}: score=${e.mavescore}, symptomer=[${(e.symptomer||[]).join(',')}], mad="${e.mad||''}", kaffe=${e.kaffe}, motion="${e.motion||''}", alkohol=${e.alkohol}, stress=${e.stress}, søvn=${e.sovn_score}/${e.sovn_timer}t, noter="${e.noter||''}"`
+  ).join('\n');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: `Du er Jakobs personlige mave-tracker. Analyser hans check-in data og find mønstre. 
+Fokus på: korrelationer mellem mad/kaffe/motion/stress og mavescore, tidsmønstre (morgen vs aften), 
+løbets effekt på mave, mulige triggers. Vær konkret og kortfattet. Skriv på dansk. 
+Undgå diagnoser — du finder mønstre, lægen vurderer. Max 200 ord.`,
+        messages: [{ role: 'user', content: `Her er Jakobs mavelog-data:\n\n${summary}\n\nGiv en kort, konkret analyse af mønstre og mulige sammenhænge.` }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.find(b=>b.type==='text')?.text || 'Ingen analyse tilgængelig.';
+    el.textContent = text;
+    el.className = 'ai-response';
+  } catch(e) {
+    el.textContent = 'Kunne ikke hente AI-analyse. Tjek din internetforbindelse.';
+    el.className = 'ai-response';
+  }
+}
+
+// ─── WEBHOOK ─────────────────────────────────────────────────
+function saveWebhook() {
+  webhookUrl = document.getElementById('webhook-url').value.trim();
+  localStorage.setItem('mavelog_webhook', webhookUrl);
+  const dot = document.getElementById('webhook-status');
+  const hint = document.getElementById('webhook-hint');
+  if (webhookUrl.startsWith('https://script.google.com')) {
+    dot.classList.add('ok'); dot.classList.remove('err');
+    hint.textContent = 'Webhook konfigureret ✓';
+    hint.style.color = 'var(--green)';
+  } else if (webhookUrl.length > 0) {
+    dot.classList.add('err'); dot.classList.remove('ok');
+    hint.textContent = 'URL ser ikke ud som en Apps Script URL';
+    hint.style.color = 'var(--red)';
+  } else {
+    dot.classList.remove('ok','err');
+    hint.textContent = 'Indsæt din Apps Script URL herover';
+    hint.style.color = 'var(--ink3)';
+  }
+}
+</script>
+</body>
+</html>
