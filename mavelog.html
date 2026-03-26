@@ -627,12 +627,40 @@
           <div>
             <h3>Indsæt dette script</h3>
             <p>Slet alt i editoren og indsæt koden nedenfor. Klik Gem.</p>
-            <code>function doPost(e) {
-  const data = JSON.parse(e.postData.contents);
+            <code>function doGet(e) {
   const sheet = SpreadsheetApp.getActiveSpreadsheet()
-    .getSheetByName('Mavelog') || 
-    SpreadsheetApp.getActiveSpreadsheet()
-    .insertSheet('Mavelog');
+    .getSheetByName('Mavelog');
+  if (!sheet) return json({rows:[]});
+
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const data = rows.slice(1).map(r => {
+    const obj = {};
+    headers.forEach((h,i) => obj[h] = r[i]);
+    return {
+      dato: obj['Dato']||'',
+      tidspunkt: obj['Tidspunkt']||'',
+      klokkeslaet: obj['Kl.']||'',
+      mavescore: Number(obj['Score'])||null,
+      symptomer: obj['Symptomer'] ? obj['Symptomer'].split(', ').filter(Boolean) : [],
+      mad: obj['Mad']||null,
+      kaffe: obj['Kaffe']!==''?Number(obj['Kaffe']):null,
+      sovn_score: Number(obj['Søvn score'])||null,
+      sovn_timer: Number(obj['Søvn timer'])||null,
+      stress: Number(obj['Stress'])||null,
+      motion: obj['Motion']||null,
+      alkohol: obj['Alkohol']||null,
+      noter: obj['Noter']||null
+    };
+  });
+  return json({rows: data});
+}
+
+function doPost(e) {
+  const data = JSON.parse(e.postData.contents);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Mavelog') ||
+    ss.insertSheet('Mavelog');
 
   if (sheet.getLastRow() === 0) {
     sheet.appendRow(['Dato','Tidspunkt','Kl.','Score',
@@ -649,8 +677,12 @@
     data.alkohol||'', data.noter||''
   ]);
 
+  return json({status:'ok'});
+}
+
+function json(obj) {
   return ContentService
-    .createTextOutput(JSON.stringify({status:'ok'}))
+    .createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }</code>
           </div>
@@ -677,17 +709,67 @@
 
 <script>
 // ─── STATE ───────────────────────────────────────────────────
-const STORAGE_KEY = 'mavelog_entries';
-let entries = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+let entries = [];
 let webhookUrl = localStorage.getItem('mavelog_webhook') || '';
 let currentType = null;
 let currentEntry = {};
+let sheetsLoaded = false;
+
+// ─── SHEETS SYNC ─────────────────────────────────────────────
+async function loadFromSheets() {
+  if (!webhookUrl) return;
+  showSyncBanner('Henter data fra Google Sheets…');
+  try {
+    const url = webhookUrl + '?action=get';
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.rows) {
+      entries = data.rows;
+      localStorage.setItem('mavelog_entries_cache', JSON.stringify(entries));
+      sheetsLoaded = true;
+      hideSyncBanner();
+    }
+  } catch(e) {
+    // Fald tilbage til cache
+    const cached = localStorage.getItem('mavelog_entries_cache');
+    if (cached) {
+      entries = JSON.parse(cached);
+      showSyncBanner('Offline — viser cachet data', true);
+    } else {
+      showSyncBanner('Kunne ikke forbinde til Sheets', true);
+    }
+  }
+}
+
+function showSyncBanner(msg, isError) {
+  let b = document.getElementById('sync-banner');
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'sync-banner';
+    b.style.cssText = 'position:fixed;top:0;left:220px;right:0;padding:8px 24px;font-size:11px;text-align:center;z-index:100;transition:opacity 0.3s;font-family:DM Mono,monospace;';
+    document.body.appendChild(b);
+  }
+  b.textContent = msg;
+  b.style.background = isError ? '#FDE8E8' : '#D8EFE5';
+  b.style.color = isError ? '#9B1C1C' : '#2D6A4F';
+  b.style.opacity = '1';
+}
+
+function hideSyncBanner() {
+  const b = document.getElementById('sync-banner');
+  if (b) { b.style.opacity = '0'; setTimeout(() => b && b.remove(), 400); }
+}
 
 // Init
 if (webhookUrl) {
   document.getElementById('webhook-url').value = webhookUrl;
   document.getElementById('webhook-status').classList.add('ok');
   document.getElementById('webhook-hint').textContent = 'Webhook konfigureret ✓';
+  loadFromSheets();
+} else {
+  // Ingen webhook — brug evt. gammel localStorage som fallback
+  const old = localStorage.getItem('mavelog_entries');
+  if (old) entries = JSON.parse(old);
 }
 
 // ─── NAV ─────────────────────────────────────────────────────
@@ -696,9 +778,8 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   event.currentTarget.classList.add('active');
-  if (name === 'historik') renderHistorik();
-  if (name === 'opsummering') renderOpsummering();
-  if (name === 'mavepuls') renderMavepulsList();
+  if (name === 'historik') { loadFromSheets().then(renderHistorik); }
+  if (name === 'opsummering') { loadFromSheets().then(renderOpsummering); }
   if (name === 'mavepuls') renderMavepulsList();
 }
 
@@ -991,11 +1072,7 @@ function renderNoter() {
 
 // ─── SUBMIT ───────────────────────────────────────────────────
 async function submitEntry() {
-  entries.push({...currentEntry});
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-
   const flow = document.getElementById('flow');
-  const scoreColors = {1:'var(--red)',2:'var(--red)',3:'var(--amber)',4:'var(--green)',5:'var(--green)'};
   const syms = currentEntry.symptomer.length ? currentEntry.symptomer.join(', ') : 'Ingen';
 
   flow.innerHTML = `
@@ -1012,7 +1089,7 @@ async function submitEntry() {
       </div>
     </div>
     <div style="margin-top:16px;font-size:12px;color:var(--ink3);" id="webhook-result">
-      ${webhookUrl ? 'Sender til Google Sheets...' : '⚠ Ingen webhook konfigureret — data er kun gemt lokalt i browseren.'}
+      ${webhookUrl ? 'Sender til Google Sheets...' : '⚠ Ingen webhook konfigureret — gå til Opsætning for at aktivere sync.'}
     </div>
     <div class="btn-row" style="margin-top:20px;">
       <button class="btn btn-primary" onclick="resetCheckin()">Ny check-in</button>
@@ -1025,13 +1102,16 @@ async function submitEntry() {
       await fetch(webhookUrl, {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify(currentEntry),
+        body: JSON.stringify({action:'post', ...currentEntry}),
         mode: 'no-cors'
       });
-      document.getElementById('webhook-result').textContent = '✓ Sendt til Google Sheets';
+      document.getElementById('webhook-result').textContent = '✓ Gemt i Google Sheets';
       document.getElementById('webhook-result').style.color = 'var(--green)';
+      // Opdater lokal cache
+      entries.push({...currentEntry});
+      localStorage.setItem('mavelog_entries_cache', JSON.stringify(entries));
     } catch(e) {
-      document.getElementById('webhook-result').textContent = '✗ Kunne ikke sende til Sheets — data gemt lokalt.';
+      document.getElementById('webhook-result').textContent = '✗ Kunne ikke sende til Sheets';
       document.getElementById('webhook-result').style.color = 'var(--red)';
     }
   }
@@ -1052,7 +1132,7 @@ function showHistorik() {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-historik').classList.add('active');
   document.querySelectorAll('.nav-item')[1].classList.add('active');
-  renderHistorik();
+  loadFromSheets().then(renderHistorik);
 }
 
 // ─── HISTORIK ─────────────────────────────────────────────────
@@ -1272,6 +1352,7 @@ function saveWebhook() {
     dot.classList.add('ok'); dot.classList.remove('err');
     hint.textContent = 'Webhook konfigureret ✓';
     hint.style.color = 'var(--green)';
+    loadFromSheets();
   } else if (webhookUrl.length > 0) {
     dot.classList.add('err'); dot.classList.remove('ok');
     hint.textContent = 'URL ser ikke ud som en Apps Script URL';
